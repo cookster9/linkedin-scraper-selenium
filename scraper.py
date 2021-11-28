@@ -5,9 +5,11 @@ import pandas as pd
 from datetime import datetime
 
 urls = ['https://www.linkedin.com/jobs/search?keywords=cyber%20security&location=Nashville%2C%20Tennessee%2C%20United%20States&geoId=105573479&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0'
-	,'file:///C:/Users/acook/Downloads/614%20Cyber%20Security%20jobs%20in%20Nashville,%20Tennessee,%20United%20States%20(19%20new).html']
+	,'file:///C:/Users/acook/Downloads/614%20Cyber%20Security%20jobs%20in%20Nashville,%20Tennessee,%20United%20States%20(19%20new).html'
+		,'file:///Users/andrewcook/Documents/GitHub/linkedin-scraper-selenium/job_page2.html']
 url=urls[0]
-wd = webdriver.Chrome(executable_path='./chromedriver.exe')
+# wd = webdriver.get("file://" + path)
+wd = webdriver.Chrome(executable_path='./chromedriver')
 wd.get(url)
 
 no_of_jobs = int(wd.find_element(By.CSS_SELECTOR,'h1>span').get_attribute('innerText'))
@@ -43,10 +45,17 @@ company_name = []
 location = []
 date = []
 job_link = []
+jar=[]
+k=0
 for job in jobs:
+	if k > 5:
+		break
+
 	job_id0 = job.get_attribute('data-id')
 	job_id.append(job_id0)
-	
+	#jar[k]=job_id0
+	k = k + 1
+
 	job_title0 = job.find_element(By.CSS_SELECTOR,'div > div.base-search-card__info > h3').get_attribute('innerText')
 	job_title.append(job_title0)
 	
@@ -68,15 +77,24 @@ emp_type = []
 job_func = []
 industries = []
 descriptions = []
-for item in range(len(jobs)):
+
+#len(jobs)
+for item in range(k):
 	if 1==1:
+		descriptions0 = {
+			'ID': job_id[item],
+			'Seniority level': "",
+			'Employment type': "",
+			'Job function': "",
+			'Industries': "",
+			'error': ""
+		}
 		try:
 			print(item)
 			job_func0=[]
 			industries0=[]
-			descriptions0=[]
 			# clicking job to view job details
-			job_click_path = f'//*[@id="main-content"]/section[2]/ul/li[{item+1}]/div/a'#//*[@id="main-content"]/section[2]/ul/li[1]/div/a
+			job_click_path=F'//*[@id="main-content"]/section[2]/ul/li[{item+1}]/div/a'
 			job_click = job.find_element(By.XPATH,job_click_path).click()
 			time.sleep(5)
 
@@ -97,16 +115,25 @@ for item in range(len(jobs)):
 			item_class='description__job-criteria-item'
 			description_items=description_element.find_elements(By.CLASS_NAME,item_class)
 			item_description_class = 'description__job-criteria-text'
+			item_name = 'description__job-criteria-subheader'
+			#
+			#TODO get item name class or xpath
 			for item in description_items:
 				item0=item.find_element(By.CLASS_NAME,item_description_class).get_attribute('innerText')
-				descriptions0.append(item0)
+				#TODO get list of names
+				itemName=item.find_element(By.CLASS_NAME,item_name).get_attribute('innerText')
+				descriptions0[itemName]=item0
+				#descriptions0.append(item0)
 			
 			#descriptions_final = ', '.join(descriptions0)
 			descriptions.append(descriptions0)
 		except:
 			jd0='error'
 			jd.append(jd0)
-			descriptions0=['error']
+			descriptions0['Seniority level'] = 'error'
+			descriptions0['Employment type'] = 'error'
+			descriptions0['Job function'] = 'error'
+			descriptions0['Industries'] = 'error'
 			descriptions.append(descriptions0)
 
 
@@ -141,9 +168,18 @@ job_data = pd.DataFrame({'ID': job_id,
 	'Title': job_title,
 	'Location': location,
 	'Description': jd,
-	'Sub descriptions': descriptions,
-	'Link': job_link
+	#'Sub descriptions': descriptions, #add one for each possible attribute
+	#'Seniority level': descriptions['Seniority level'],
+	#'Employment type': descriptions['Employment type'],
+	#'Job function': descriptions['Job function'],
+	#'Industries': descriptions['Industries'],
+	#'sub': descriptions,
+	'Link': job_link,
 	})
+
+description_data=pd.DataFrame.from_dict(descriptions)
+
+job_data.merge(description_data, how='inner', on='ID')
 
 # cleaning description column
 job_data['Description'] = job_data['Description'].str.replace('\n',' ')
