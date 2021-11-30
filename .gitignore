@@ -71,6 +71,7 @@ instance/
 # Output stuff:
 .csv
 .html
+.xslx
 
 # Sphinx documentation
 docs/_build/

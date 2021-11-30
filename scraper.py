@@ -3,13 +3,22 @@ from selenium.webdriver.common.by import By
 import time
 import pandas as pd
 from datetime import datetime
+import platform
 
 urls = ['https://www.linkedin.com/jobs/search?keywords=cyber%20security&location=Nashville%2C%20Tennessee%2C%20United%20States&geoId=105573479&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0'
 	,'file:///C:/Users/acook/Downloads/614%20Cyber%20Security%20jobs%20in%20Nashville,%20Tennessee,%20United%20States%20(19%20new).html'
 		,'file:///Users/andrewcook/Documents/GitHub/linkedin-scraper-selenium/job_page2.html']
 url=urls[0]
 # wd = webdriver.get("file://" + path)
-wd = webdriver.Chrome(executable_path='./chromedriver')
+system=platform.system()
+wd=[]
+if(system=='Windows'):
+	wd = webdriver.Chrome(executable_path='./chromedriver.exe')
+elif (system=='Mac'):
+	webdriver.Chrome(executable_path='./chromedriver')
+else:
+	raise Exception("Don't have an executable for: "+system)
+
 wd.get(url)
 
 no_of_jobs = int(wd.find_element(By.CSS_SELECTOR,'h1>span').get_attribute('innerText'))
@@ -51,7 +60,8 @@ for job in jobs:
 	if k > 5:
 		break
 
-	job_id0 = job.get_attribute('data-id')
+	# job_id0 = job.get_attribute('data-id') # don't think job id is a thing anymore
+	job_id0=k
 	job_id.append(job_id0)
 	#jar[k]=job_id0
 	k = k + 1
@@ -81,6 +91,7 @@ descriptions = []
 #len(jobs)
 for item in range(k):
 	if 1==1:
+		#print(job_id[item])
 		descriptions0 = {
 			'ID': job_id[item],
 			'Seniority level': "",
@@ -178,11 +189,15 @@ job_data = pd.DataFrame({'ID': job_id,
 	})
 
 description_data=pd.DataFrame.from_dict(descriptions)
+description_data.head()
+print(description_data.head())
 
-job_data.merge(description_data, how='inner', on='ID')
+full_data=job_data.join(description_data, how='inner', on='ID')
 
 # cleaning description column
-job_data['Description'] = job_data['Description'].str.replace('\n',' ')
+full_data['Description'] = full_data['Description'].str.replace('\n',' ')
 filename='LinkedIn Job Data_Data Scientist'+datetime.now().strftime("%m%d%Y%H%M%S")+'.csv'
-job_data.to_csv(filename, index = False, sep='|')
+full_data.to_csv(filename, index = False, sep='|')
 #job_data.to_excel('LinkedIn Job Data_Data Scientist.xlsx', index = False)
+
+quit() #windows hangs?
