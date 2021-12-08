@@ -14,8 +14,8 @@ system=platform.system()
 wd=[]
 if(system=='Windows'):
 	wd = webdriver.Chrome(executable_path='./chromedriver.exe')
-elif (system=='Mac'):
-	webdriver.Chrome(executable_path='./chromedriver')
+elif (system=='Darwin'):
+	wd=webdriver.Chrome(executable_path='./chromedriver')
 else:
 	raise Exception("Don't have an executable for: "+system)
 
@@ -146,32 +146,6 @@ for item in range(k):
 			descriptions0['Job function'] = 'error'
 			descriptions0['Industries'] = 'error'
 			descriptions.append(descriptions0)
-
-
-	# for element in description_elements:
-	# 	descriptions0.append(element.get_attribute())
-	
-	# seniority_path = '/html/body/div[1]/div/section/div[2]/div/section[1]/div/ul/li[1]/span'
-	# seniority0 = wd.find_element(By.XPATH,seniority_path).get_attribute('innerText')
-	# seniority.append(seniority0)
-	
-	# emp_type_path = '/html/body/div[1]/div/section/div[2]/div/section[1]/div/ul/li[2]/span'
-	# emp_type0 = wd.find_element(By.XPATH,emp_type_path).get_attribute('innerText')
-	# emp_type.append(emp_type0)
- 
-	# job_func_path = '/html/body/div[1]/div/section/div[2]/div/section[1]/div/ul/li[3]/span'
-	# job_func_elements = wd.find_elements(By.XPATH,job_func_path)
-	# for element in job_func_elements:
-    #      job_func0.append(element.get_attribute('innerText'))
-    #      job_func_final = ', '.join(job_func0)
-    #      job_func.append(job_func_final)
-	
-	# industries_path = '/html/body/div[1]/div/section/div[2]/div/section[1]/div/ul/li[4]/span'
-	# industries_elements = wd.find_elements(By.XPATH,industries_path)
-	# for element in industries_elements:
-    #      industries0.append(element.get_attribute('innerText'))
-    #      industries_final = ', '.join(industries0)
-    #      industries.append(industries_final)
  
 job_data = pd.DataFrame({'ID': job_id,
 	'Date': date,
@@ -189,10 +163,8 @@ job_data = pd.DataFrame({'ID': job_id,
 	})
 
 description_data=pd.DataFrame.from_dict(descriptions)
-description_data.head()
-print(description_data.head())
 
-full_data=job_data.join(description_data, how='inner', on='ID')
+full_data=job_data.join(description_data, how='inner', on='ID', lsuffix='_left', rsuffix='_right')
 
 # cleaning description column
 full_data['Description'] = full_data['Description'].str.replace('\n',' ')
