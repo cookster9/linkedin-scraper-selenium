@@ -7,25 +7,41 @@ import platform
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import mysql.connector
+import credsPASSWORDS
 
 from sqlalchemy import engine, types
 
-# mydb = mysql.connector.connect(
-#   host="localhost",
-#   user="root",
-#   password="f*b3P8X2pn2naviUuoIhpy1&h68mA^"
-# )
+mode='mysql'#pass this in somehow
+creds={
+	'host':"",
+'user':"",
+'password':"",
+'port':""
+}
 
-host="localhost",
-user="root",
-password="f*b3P8X2pn2naviUuoIhpy1&h68mA^"
+if(mode=='mysql'):
+	creds=credsPASSWORDS.mySql
+elif(mode=='digitalOcean'):
+	creds=credsPASSWORDS.digitalOcean
+else:
+	raise Exception("Don't support database: "+mode)
 
-mysql_engine = engine.create_engine("mysql+mysqlconnector://root:f*b3P8X2pn2naviUuoIhpy1&h68mA^@localhost:3306") #mysql+mysqlconnector://<user>:<password>@<host>[:<port>]/<dbname>
+host=creds['host']
+user=creds['user']
+password=creds['password']
+port=creds['port']
 
-# "mysql://"+user+":"+password+"@"+host+"[:3306]"
+mysql_engine=''
 
-#need to use sqlalchemy?
-#mysql+mysqlconnector://<user>:<password>@<host>[:<port>]/<dbname>
+if(mode=='mysql'):
+	mysql_engine=mysql.connector.connect(user=user, password=password,
+                              host=host,
+                              database='scraper')
+elif(mode=='digitalOcean'):
+	connectionString="mysql+mysqlconnector://"+user+":"+password+"@"+host+":"+port
+	mysql_engine = engine.create_engine(connectionString) #mysql+mysqlconnector://<user>:<password>@<host>[:<port>]/<dbname>
+else:
+	raise Exception("Don't support database: "+mode)
 
 chrome_options = Options()
 #chrome_options.add_argument("--headless")
@@ -191,16 +207,15 @@ filename='LinkedIn Job Data_Data Scientist'+datetime.now().strftime("%m%d%Y%H%M%
 full_data.to_csv(filename, index = False, sep='|')
 #job_data.to_excel('LinkedIn Job Data_Data Scientist.xlsx', index = False)
 
-#TODO mysql queries
-#load file. you have filename
-#parse column names from first line
-#there's a method
+print(full_data)
+
 name='jobs'
 #con=mydb
-test_types=dict(zip(full_data.columns.tolist(),(types.VARCHAR(length=20000), types.VARCHAR(length=20000)
-, types.VARCHAR(length=20000), types.VARCHAR(length=20000), types.VARCHAR(length=20000), types.VARCHAR(length=20000), types.TEXT(length=20000)
-, types.VARCHAR(length=20000), types.VARCHAR(length=20000), types.VARCHAR(length=20000), types.VARCHAR(length=20000), types.VARCHAR(length=20000), types.VARCHAR(length=20000) ) ))
+test_types=dict(zip(full_data.columns.tolist(),(types.VARCHAR(length=20), types.VARCHAR(length=20)
+, types.VARCHAR(length=20), types.VARCHAR(length=200), types.VARCHAR(length=400), types.VARCHAR(length=400), types.TEXT(length=20000)
+, types.VARCHAR(length=400), types.VARCHAR(length=20), types.VARCHAR(length=400), types.VARCHAR(length=400), types.VARCHAR(length=400), types.VARCHAR(length=400))))
 
-full_data.to_sql('jobs', con=mysql_engine, schema='scraper', if_exists='append', index=False, chunksize=None, dtype=test_types, method=None)
+full_data=full_data.astype(str)
+full_data.to_sql('jobs', con=mysql_engine, schema='scraper', if_exists='append', index=False, chunksize=None, dtype={col_name: str(types.TEXT) for col_name in full_data}, method=None)
 
-quit() #windows hangs?
+quit() #windows hangs? chromedriver issue
