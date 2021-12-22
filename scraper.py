@@ -14,14 +14,14 @@ from sqlalchemy import engine, types
 mode='mysql'#pass this in somehow
 creds={
 	'host':"",
-'user':"",
-'password':"",
-'port':""
+	'user':"",
+	'password':"",
+	'port':""
 }
 
-if(mode=='mysql'):
+if mode=='mysql':
 	creds=credsPASSWORDS.mySql
-elif(mode=='digitalOcean'):
+elif mode=='digitalOcean':
 	creds=credsPASSWORDS.digitalOcean
 else:
 	raise Exception("Don't support database: "+mode)
