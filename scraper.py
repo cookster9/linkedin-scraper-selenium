@@ -8,6 +8,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import mysql.connector
 import credsPASSWORDS
+import pymysql
 
 from sqlalchemy import engine, types
 
@@ -33,17 +34,19 @@ port=creds['port']
 
 mysql_engine=''
 
-if(mode=='mysql'):
-	mysql_engine=mysql.connector.connect(user=user, password=password,
-                              host=host,
-                              database='scraper')
-elif(mode=='digitalOcean'):
+if mode=='mysql':
+	#mysql_engine=mysql.connector.connect(user=user, password=password,host=host,database='scraper')
+	connectionString = "mysql+pymysql://" + user + ":" + password + "@" + host + ":" + port
+	mysql_engine = engine.create_engine(connectionString)
+elif mode=='digitalOcean':
 	connectionString="mysql+mysqlconnector://"+user+":"+password+"@"+host+":"+port
 	mysql_engine = engine.create_engine(connectionString) #mysql+mysqlconnector://<user>:<password>@<host>[:<port>]/<dbname>
 else:
 	raise Exception("Don't support database: "+mode)
 
 chrome_options = Options()
+chrome_options.add_argument("--window-size=1920x1080")
+chrome_options.add_argument("--verbose")
 #chrome_options.add_argument("--headless")
 
 urls = ['https://www.linkedin.com/jobs/search?keywords=cyber%20security&location=Nashville%2C%20Tennessee%2C%20United%20States&geoId=105573479&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0'
@@ -53,12 +56,12 @@ url=urls[0]
 # wd = webdriver.get("file://" + path)
 system=platform.system()
 wd=[]
-if(system=='Windows'):
+if system=='Windows' :
 	s = Service('./chromedriver.exe')
 	wd = webdriver.Chrome(service=s, options=chrome_options)
-elif (system=='Darwin'):
-	s = Service('./chromedriver', options=chrome_options)
-	wd=webdriver.Chrome(service=s)
+elif  system=='Darwin' :
+	#s = Service('./chromedriver')
+	wd=webdriver.Chrome(options=chrome_options, executable_path='./chromedriver')
 else:
 	raise Exception("Don't have an executable for: "+system)
 
@@ -101,7 +104,7 @@ jar=[]
 k=0
 for job in jobs:
 
-	if(k>5):
+	if k>5:
 		break
 
 	# job_id0 = job.get_attribute('data-id') # don't think job id is a thing anymore
@@ -172,10 +175,10 @@ for item in range(k):
 		item_description_class = 'description__job-criteria-text'
 		item_name = 'description__job-criteria-subheader'
 		
-		for item in description_items:
-			item0=item.find_element(By.CLASS_NAME,item_description_class).get_attribute('innerText')
+		for d_item in description_items:
+			item0=d_item.find_element(By.CLASS_NAME,item_description_class).get_attribute('innerText')
 			
-			itemName=item.find_element(By.CLASS_NAME,item_name).get_attribute('innerText')
+			itemName=d_item.find_element(By.CLASS_NAME,item_name).get_attribute('innerText')
 			descriptions0[itemName]=item0							
 		
 		descriptions.append(descriptions0)
@@ -216,6 +219,6 @@ test_types=dict(zip(full_data.columns.tolist(),(types.VARCHAR(length=20), types.
 , types.VARCHAR(length=400), types.VARCHAR(length=20), types.VARCHAR(length=400), types.VARCHAR(length=400), types.VARCHAR(length=400), types.VARCHAR(length=400))))
 
 full_data=full_data.astype(str)
-full_data.to_sql('jobs', con=mysql_engine, schema='scraper', if_exists='append', index=False, chunksize=None, dtype={col_name: str(types.TEXT) for col_name in full_data}, method=None)
+full_data.to_sql('jobs', con=mysql_engine, schema='scraper', if_exists='append', index=False, chunksize=None, dtype=test_types, method=None)
 
 quit() #windows hangs? chromedriver issue
