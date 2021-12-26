@@ -9,9 +9,15 @@ from selenium.webdriver.chrome.options import Options
 import mysql.connector
 import credsPASSWORDS
 import pymysql
+import re
 
 from sqlalchemy import engine, types
 
+#TODO clean up imports
+
+#TODO create main function
+
+#TODO make connector function
 mode='mysql'#pass this in somehow
 creds={
 	'host':"",
@@ -44,6 +50,7 @@ elif mode=='digitalOcean':
 else:
 	raise Exception("Don't support database: "+mode)
 
+#TODO make chrome webdriver function
 chrome_options = Options()
 chrome_options.add_argument("--window-size=1920x1080")
 chrome_options.add_argument("--verbose")
@@ -65,8 +72,8 @@ elif  system=='Darwin' :
 else:
 	raise Exception("Don't have an executable for: "+system)
 
+#TODO make job loader function to load full page
 wd.get(url)
-
 no_of_jobs = int(wd.find_element(By.CSS_SELECTOR,'h1>span').get_attribute('innerText'))
 
 #load the whole page with a combination of scrolling and clicking a "show more" button
@@ -88,6 +95,8 @@ while len(wd.find_element(By.CLASS_NAME,'jobs-search__results-list').find_elemen
 		time.sleep(4)
 
 #now that everything is loaded, get info about the page
+
+#TODO make get job info function
 job_lists = wd.find_element(By.CLASS_NAME,'jobs-search__results-list')
 jobs = job_lists.find_elements(By.TAG_NAME,'li') # return a list
 
@@ -95,6 +104,7 @@ print(no_of_jobs)
 
 
 job_id= []
+job_urn = []
 job_title = []
 company_name = []
 location = []
@@ -104,7 +114,7 @@ jar=[]
 k=0
 for job in jobs:
 
-	if k>5:
+	if k>1:
 		break
 
 	# job_id0 = job.get_attribute('data-id') # don't think job id is a thing anymore
@@ -113,7 +123,12 @@ for job in jobs:
 	#jar[k]=job_id0
 	
 
-	k = k + 1	
+	k = k + 1
+
+	job_urn0 = job.find_element(By.CSS_SELECTOR,'div').get_attribute('data-entity-urn')
+	job_urn_id = job_urn0.split(":")[3]
+	job_urn.append(job_urn_id)
+	# main-content > section.two-pane-serp-page__results-list > ul > li:nth-child(2) > div
 
 	job_title0 = job.find_element(By.CSS_SELECTOR,'div > div.base-search-card__info > h3').get_attribute('innerText')
 	job_title.append(job_title0)
@@ -129,13 +144,15 @@ for job in jobs:
 	
 	job_link0 = job.find_element(By.CSS_SELECTOR,'div > a').get_attribute('href')
 	job_link.append(job_link0)
-	
+
+#TODO make get descriptions function
 jd = []
 seniority = []
 emp_type = []
 job_func = []
 industries = []
 descriptions = []
+desc_urns = []
 
 #len(jobs)
 for item in range(k):	
@@ -143,6 +160,7 @@ for item in range(k):
 	
 	descriptions0 = {
 		'ID': job_id[item],
+		'URN': "",
 		'Seniority level': "",
 		'Employment type': "",
 		'Job function': "",
@@ -154,7 +172,15 @@ for item in range(k):
 		industries0=[]
 		# clicking job to view job details
 		job_click_path=F'//*[@id="main-content"]/section[2]/ul/li[{item+1}]/div/a'
-		job_click = job.find_element(By.XPATH,job_click_path).click()
+		job_click_element = job.find_element(By.XPATH,job_click_path)
+		print(job_click_element)
+		desc_urn_match = re.search("\d*(?=\?refId)",job_click_element.get_attribute('href'))
+		print(desc_urn_match)
+		desc_urn = desc_urn_match.group(0)
+		print(desc_urn)
+		#desc_urns.append(desc_urn)
+		descriptions0['URN']=desc_urn
+		clickWorked = job_click_element.click()
 		time.sleep(5)
 
 		detail_path='/html/body/div[1]/div/section'
@@ -192,6 +218,7 @@ for item in range(k):
 		descriptions.append(descriptions0)
  
 job_data = pd.DataFrame({'ID': job_id,
+	'URN': job_urn,
 	'Date': date,
 	'Company': company_name,
 	'Title': job_title,
@@ -202,9 +229,14 @@ job_data = pd.DataFrame({'ID': job_id,
 
 description_data=pd.DataFrame.from_dict(descriptions)
 
+print(job_data)
+print(description_data)
+
 full_data=job_data.join(description_data, how='inner', on='ID', lsuffix='_left', rsuffix='_right')
 
-# cleaning description column
+#TODO make output function
+
+#cleaning description column
 full_data['Description'] = full_data['Description'].str.replace('\n',' ')
 filename='LinkedIn Job Data_Data Scientist'+datetime.now().strftime("%m%d%Y%H%M%S")+'.csv'
 full_data.to_csv(filename, index = False, sep='|')
@@ -214,11 +246,13 @@ print(full_data)
 
 name='jobs'
 #con=mydb
-test_types=dict(zip(full_data.columns.tolist(),(types.VARCHAR(length=20), types.VARCHAR(length=20)
+test_types=dict(zip(full_data.columns.tolist(),(types.VARCHAR(length=20), types.VARCHAR(length=20), types.VARCHAR(length=200)
 , types.VARCHAR(length=20), types.VARCHAR(length=200), types.VARCHAR(length=400), types.VARCHAR(length=400), types.TEXT(length=20000)
-, types.VARCHAR(length=400), types.VARCHAR(length=20), types.VARCHAR(length=400), types.VARCHAR(length=400), types.VARCHAR(length=400), types.VARCHAR(length=400))))
+, types.VARCHAR(length=400), types.VARCHAR(length=20), types.VARCHAR(length=200), types.VARCHAR(length=400), types.VARCHAR(length=400), types.VARCHAR(length=400), types.VARCHAR(length=400))))
 
 full_data=full_data.astype(str)
 full_data.to_sql('jobs', con=mysql_engine, schema='scraper', if_exists='append', index=False, chunksize=None, dtype=test_types, method=None)
 
 quit() #windows hangs? chromedriver issue
+
+#TODO add __main__ conditional
