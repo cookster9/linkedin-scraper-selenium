@@ -7,65 +7,45 @@ import time
 import pandas as pd
 from datetime import datetime
 import platform
-import credsPASSWORDS
+import credsPASSWORDS as credsPASSWORDS
 import re
 
 from sqlalchemy import engine, types
 
-#TODO clean up imports
-
-def main():
-	# TODO make connector function
-	mode = 'mysql'  # pass this in somehow
+def sqlEngineMaker(modeIn):
+	mode = modeIn 
 
 	if mode == 'mysql':
 		credentials = credsPASSWORDS.mySql
+		connection_type='pymysql'	
 	elif mode == 'digitalOcean':
 		credentials = credsPASSWORDS.digitalOcean
+		connection_type='mysqlconnector'		
 	else:
 		raise Exception("Don't support database: " + mode)
 
-	host = credentials['host']
-	user = credentials['user']
-	password = credentials['password']
-	port = credentials['port']
+	connection_string = "mysql+"+connection_type+"://" + credentials['user'] + ":" + credentials['password'] + "@" + credentials['host'] + ":" + credentials['port']
+	return engine.create_engine(connection_string)  # mysql+mysqlconnector://<user>:<password>@<host>[:<port>]/<dbname>
 
-	if mode == 'mysql':
-		# mysql_engine=mysql.connector.connect(user=user, password=password,host=host,database='scraper')
-		connection_string = "mysql+pymysql://" + user + ":" + password + "@" + host + ":" + port
-		mysql_engine = engine.create_engine(connection_string)
-	elif mode == 'digitalOcean':
-		connection_string = "mysql+mysqlconnector://" + user + ":" + password + "@" + host + ":" + port
-		mysql_engine = engine.create_engine(
-			connection_string)  # mysql+mysqlconnector://<user>:<password>@<host>[:<port>]/<dbname>
-	else:
-		raise Exception("Don't support database: " + mode)
-
+def runChrome():	
 	# TODO make chrome Web Driver function
 	chrome_options = Options()
 	chrome_options.add_argument("--window-size=1920x1080")
 	chrome_options.add_argument("--verbose")
 	# chrome_options.add_argument("--headless")
-
-	urls = [
-		'https://www.linkedin.com/jobs/search?keywords=cyber%20security&location=Nashville%2C%20Tennessee%2C%20United%20States&geoId=105573479&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0'
-		,
-		'file:///C:/Users/acook/Downloads/614%20Cyber%20Security%20jobs%20in%20Nashville,%20Tennessee,%20United%20States%20(19%20new).html'
-		, 'file:///Users/andrewcook/Documents/GitHub/linkedin-scraper-selenium/job_page2.html']
-	url = urls[0]
+	
 	system = platform.system()
-
 	if system == 'Windows':
-		s = Service('./chromedriver.exe')
-		wd = webdriver.Chrome(service=s, options=chrome_options)
+		#s = Service('./chromedriver.exe')
+		wd = webdriver.Chrome(options=chrome_options, executable_path='./scraper/chromedriver.exe')
 	elif system == 'Darwin':
 		# s = Service('./chromedriver')
 		wd = webdriver.Chrome(options=chrome_options, executable_path='./scraper/chromedriver')
 	else:
 		raise Exception("Don't have an executable for: " + system)
+	return wd
 
-	# TODO make job loader function to load full page
-	wd.get(url)
+def loadPage(wd):
 	no_of_jobs = int(wd.find_element(By.CSS_SELECTOR, 'h1>span').get_attribute('innerText'))
 
 	# load the whole page with a combination of scrolling and clicking a "show more" button
@@ -84,14 +64,25 @@ def main():
 		except WebDriverException:
 			pass
 			time.sleep(4)
+	return
 
+def main():
+	
+	wd = runChrome()
+
+	urls = [
+		'https://www.linkedin.com/jobs/search?keywords=cyber%20security&location=Nashville%2C%20Tennessee%2C%20United%20States&geoId=105573479&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0'
+		]
+	url = urls[0]
+	wd.get(url)
+
+	loadPage(wd)
+	
 	# now that everything is loaded, get info about the page
 
 	# TODO make get job info function
 	job_lists = wd.find_element(By.CLASS_NAME, 'jobs-search__results-list')
 	jobs = job_lists.find_elements(By.TAG_NAME, 'li')  # return a list
-
-	print(no_of_jobs)
 
 	job_id = []
 	job_urn = []
@@ -236,6 +227,10 @@ def main():
 										 types.VARCHAR(length=400))))
 
 	full_data = full_data.astype(str)
+	
+	mode='mysql'	
+
+	mysql_engine = sqlEngineMaker(mode)	
 	full_data.to_sql('jobs', con=mysql_engine, schema='scraper', if_exists='append', index=False, chunksize=None,
 					 dtype=test_types, method=None)
 

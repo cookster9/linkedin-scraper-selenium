@@ -1,5 +1,5 @@
 import mysql.connector
-import credsPASSWORDS
+import scraper.credsPASSWORDS as credsPASSWORDS
 import pymysql
 import webbrowser, os
 
