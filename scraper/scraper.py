@@ -30,14 +30,15 @@ def sqlEngineMaker(modeIn):
 def runChrome():	
 	# TODO make chrome Web Driver function
 	chrome_options = Options()
-	chrome_options.add_argument("--window-size=1920x1080")
+	chrome_options.add_argument("--window-size=1920,1080")
 	chrome_options.add_argument("--verbose")
+	chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
 	# chrome_options.add_argument("--headless")
 	
 	system = platform.system()
 	if system == 'Windows':
-		#s = Service('./chromedriver.exe')
-		wd = webdriver.Chrome(options=chrome_options, executable_path='./scraper/chromedriver.exe')
+		s = Service('./scraper/chromedriver.exe')
+		wd = webdriver.Chrome(options=chrome_options, service=s)# executable_path='./scraper/chromedriver.exe')
 	elif system == 'Darwin':
 		# s = Service('./chromedriver')
 		wd = webdriver.Chrome(options=chrome_options, executable_path='./scraper/chromedriver')
@@ -45,7 +46,8 @@ def runChrome():
 		raise Exception("Don't have an executable for: " + system)
 	return wd
 
-def loadPage(wd):
+def loadPage(wd,url):
+	wd.get(url)
 	no_of_jobs = int(wd.find_element(By.CSS_SELECTOR, 'h1>span').get_attribute('innerText'))
 
 	# load the whole page with a combination of scrolling and clicking a "show more" button
@@ -71,12 +73,12 @@ def main():
 	wd = runChrome()
 
 	urls = [
-		'https://www.linkedin.com/jobs/search?keywords=cyber%20security&location=Nashville%2C%20Tennessee%2C%20United%20States&geoId=105573479&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0'
+		'https://www.linkedin.com/jobs/search?keywords=Cybersecurity&location=Nashville%2C%20Tennessee%2C%20United%20States&geoId=105573479&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0'
+		,'https://www.google.com'
 		]
-	url = urls[0]
-	wd.get(url)
+	url = urls[0]	
 
-	loadPage(wd)
+	loadPage(wd,url)
 	
 	# now that everything is loaded, get info about the page
 
