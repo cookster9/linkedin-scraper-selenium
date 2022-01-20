@@ -38,7 +38,7 @@ def runChrome():
 	system = platform.system()
 	if system == 'Windows':
 		s = Service('./scraper/chromedriver.exe')
-		wd = webdriver.Chrome(options=chrome_options, service=s)# executable_path='./scraper/chromedriver.exe')
+		wd = webdriver.Chrome(options=chrome_options, service=s)#  executable_path='./scraper/chromedriver.exe')
 	elif system == 'Darwin':
 		# s = Service('./chromedriver')
 		wd = webdriver.Chrome(options=chrome_options, executable_path='./scraper/chromedriver')
@@ -214,7 +214,10 @@ def main():
 	# cleaning description column
 	full_data['Description'] = full_data['Description'].str.replace('\n', ' ')
 	filename = 'LinkedIn Job Data_Data Scientist' + datetime.now().strftime("%m%d%Y%H%M%S") + '.csv'
-	full_data.to_csv(filename, index=False, sep='|')
+
+	#TODO parameterize output - csv, sql, both, etc
+
+	# full_data.to_csv(filename, index=False, sep='|')
 	# job_data.to_excel('LinkedIn Job Data_Data Scientist.xlsx', index = False)
 
 	print(full_data)
