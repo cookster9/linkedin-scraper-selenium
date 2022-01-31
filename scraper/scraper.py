@@ -21,6 +21,9 @@ def sqlEngineMaker(modeIn):
 	elif mode == 'digitalOcean':
 		credentials = credsPASSWORDS.digitalOcean
 		connection_type='mysqlconnector'		
+	elif mode == 'wordPressLocal':
+		credentials = credsPASSWORDS.wordPressLocal
+		connection_type='pymysql'
 	else:
 		raise Exception("Don't support database: " + mode)
 
@@ -233,10 +236,17 @@ def main():
 
 	full_data = full_data.astype(str)
 	
-	mode='mysql'	
+	mode='wordPressLocal'	
 
-	mysql_engine = sqlEngineMaker(mode)	
-	full_data.to_sql('jobs', con=mysql_engine, schema='scraper', if_exists='append', index=False, chunksize=None,
+	mysql_engine = sqlEngineMaker(mode)
+	if mode == "mysql":
+		output_table="jobs"
+		output_schema="scraper"
+	elif mode == "wordPressLocal":
+		output_table="scraper_jobs"
+		output_schema="local"
+		
+	full_data.to_sql(output_table, con=mysql_engine, schema=output_schema, if_exists='append', index=False, chunksize=None,
 					 dtype=test_types, method=None)
 
 	quit()  # windows hangs? chromedriver issue
