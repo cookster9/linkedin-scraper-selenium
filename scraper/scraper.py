@@ -13,7 +13,8 @@ import re
 from sqlalchemy import engine, types
 
 def sqlEngineMaker(modeIn):
-	mode = modeIn 
+	mode = modeIn
+	system = platform.system()
 
 	if mode == 'mysql':
 		credentials = credsPASSWORDS.mySql
@@ -27,11 +28,14 @@ def sqlEngineMaker(modeIn):
 	else:
 		raise Exception("Don't support database: " + mode)
 
-	connection_string = "mysql+"+connection_type+"://" + credentials['user'] + ":" + credentials['password'] + "@" + credentials['host'] + ":" + credentials['port']
+	connection_string = ''
+	if system == 'Darwin':
+		connection_string = "mysql+" + connection_type + "://" + credentials['user'] + ":" + credentials['password'] + "@" + credentials['host'] + "?unix_socket=" + credentials['socket']
+	else:
+		connection_string = "mysql+" + connection_type + "://" + credentials['user'] + ":" + credentials['password'] + "@" + credentials['host'] + ":" + credentials['port']
 	return engine.create_engine(connection_string)  # mysql+mysqlconnector://<user>:<password>@<host>[:<port>]/<dbname>
 
-def runChrome():	
-	# TODO make chrome Web Driver function
+def runChrome():
 	chrome_options = Options()
 	chrome_options.add_argument("--window-size=1920,1080")
 	chrome_options.add_argument("--verbose")
@@ -41,7 +45,7 @@ def runChrome():
 	system = platform.system()
 	if system == 'Windows':
 		s = Service('./scraper/chromedriver.exe')
-		wd = webdriver.Chrome(options=chrome_options, service=s)#  executable_path='./scraper/chromedriver.exe')
+		wd = webdriver.Chrome(options=chrome_options, service=s)  # executable_path='./scraper/chromedriver.exe')
 	elif system == 'Darwin':
 		# s = Service('./chromedriver')
 		wd = webdriver.Chrome(options=chrome_options, executable_path='./scraper/chromedriver')
@@ -246,8 +250,7 @@ def main():
 		output_table="scraper_jobs"
 		output_schema="local"
 		
-	full_data.to_sql(output_table, con=mysql_engine, schema=output_schema, if_exists='append', index=False, chunksize=None,
-					 dtype=test_types, method=None)
+	full_data.to_sql(output_table, con=mysql_engine, schema=output_schema, if_exists='append', index=False, chunksize=None, dtype=test_types, method=None)
 
 	quit()  # windows hangs? chromedriver issue
 
